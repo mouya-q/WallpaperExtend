@@ -30,6 +30,11 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Setup GPR credentials
+      run: |
+        echo "gpr.user=mouya-q" >> gradle.properties
+        echo "gpr.key=${{ secrets.GITHUB_TOKEN }}" >> gradle.properties
+
     - name: Build with Gradle
       run: ./gradlew assembleDebug --no-daemon
 
