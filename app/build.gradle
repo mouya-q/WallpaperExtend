@@ -16,13 +16,13 @@
         versionName = "2.1.0"
 
          ndk {
-             abiFilters += listOf("arm64-v8a", "armeabi-v7a")
-         }
-         externalNativeBuild {
-             cmake {
-                 arguments += "-DANDROID_STL=c++_shared"
-             }
-         }
+            abiFilters "arm64-v8a", "armeabi-v7a"
+        }
+        externalNativeBuild {
+            cmake {
+                arguments "-DANDROID_STL=c++_shared"
+            }
+        }
      }
 
      externalNativeBuild {
@@ -33,37 +33,37 @@
      }
 
      buildTypes {
-         release {
-             isMinifyEnabled = true
-             proguardFiles(
-                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                 "proguard-rules.pro"
-             )
-         }
-     }
+        release {
+            minifyEnabled true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
 
-     compileOptions {
-         sourceCompatibility = JavaVersion.VERSION_17
-         targetCompatibility = JavaVersion.VERSION_17
-     }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
 
-     kotlinOptions {
-         jvmTarget = "17"
-     }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 
-     buildFeatures {
-         compose = true
-         viewBinding = false
-     }
+    buildFeatures {
+        compose true
+        viewBinding false
+    }
 
-     packaging {
-         resources {
-             excludes += "/META-INF/{AL2.0,LGPL2.1}"
-         }
-         jniLibs {
-             useLegacyPackaging = false
-         }
-     }
+    packaging {
+        resources {
+            excludes "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            useLegacyPackaging false
+        }
+    }
  }
 
   dependencies {

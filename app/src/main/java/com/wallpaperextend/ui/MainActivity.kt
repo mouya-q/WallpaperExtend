@@ -389,7 +389,7 @@ fun ParametersCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text("仅顶部延展", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF1C1C1E))
-                    Text("底部保留原图，更接近 iOS 17 效果", style = MaterialTheme.typography.bodySmall, color = Color(0xFF8E8E93))
+                    Text("底部保留原图，更接近 iOS 效果", style = MaterialTheme.typography.bodySmall, color = Color(0xFF8E8E93))
                 }
                 androidx.compose.material3.Switch(
                     checked = topOnly,
@@ -649,7 +649,7 @@ fun AppInfoCard() {
                 color = Color(0xFF8E8E93)
             )
             Text(
-                text = "iOS 17 风格壁纸延展工具",
+                text = "iOS 风格壁纸延展工具",
                 style = MaterialTheme.typography.bodySmall,
                 color = Color(0xFF6E6E73),
                 textAlign = TextAlign.Center
@@ -676,14 +676,14 @@ fun DevelopersCard(context: Context) {
                 context = context,
                 name = "海葉なっふ",
                 github = "Nafutsu",
-                role = "核心开发"
+                role = "项目发起"
             )
 
             DeveloperRow(
                 context = context,
                 name = "もうや",
                 github = "mouya-q",
-                role = "项目发起 / UI 重构"
+                role = "核心开发 / 重构"
             )
         }
     }
