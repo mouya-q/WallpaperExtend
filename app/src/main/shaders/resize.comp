@@ -1,0 +1,50 @@
+#version 450
+
+// Resize Compute Shader
+// Bilinear interpolation
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(std430, binding = 0) buffer InputBuffer {
+    vec4 inputData[];
+} input_buffer;
+
+layout(std430, binding = 1) buffer OutputBuffer {
+    vec4 outputData[];
+} output_buffer;
+
+layout(push_constant) uniform PushConstants {
+    int srcWidth;
+    int srcHeight;
+    int dstWidth;
+    int dstHeight;
+} push;
+
+void main() {
+    int x = int(gl_GlobalInvocationID.x);
+    int y = int(gl_GlobalInvocationID.y);
+
+    if (x >= push.dstWidth || y >= push.dstHeight) return;
+
+    float sx = float(x) / float(push.dstWidth) * float(push.srcWidth);
+    float sy = float(y) / float(push.dstHeight) * float(push.srcHeight);
+
+    int x0 = int(floor(sx));
+    int y0 = int(floor(sy));
+    int x1 = min(x0 + 1, push.srcWidth - 1);
+    int y1 = min(y0 + 1, push.srcHeight - 1);
+
+    float dx = sx - float(x0);
+    float dy = sy - float(y0);
+
+    vec4 p00 = input_buffer.inputData[y0 * push.srcWidth + x0];
+    vec4 p01 = input_buffer.inputData[y0 * push.srcWidth + x1];
+    vec4 p10 = input_buffer.inputData[y1 * push.srcWidth + x0];
+    vec4 p11 = input_buffer.inputData[y1 * push.srcWidth + x1];
+
+    vec4 p0 = mix(p00, p01, dx);
+    vec4 p1 = mix(p10, p11, dx);
+    vec4 result = mix(p0, p1, dy);
+
+    output_buffer.outputData[y * push.dstWidth + x] = result;
+}
