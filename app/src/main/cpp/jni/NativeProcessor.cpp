@@ -68,17 +68,14 @@ JNIEXPORT jlong JNICALL
 Java_com_wallpaperextend_processor_WallpaperProcessor_nativeInit(
         JNIEnv* env, jobject thiz) {
     wallpaper::jni::NativeProcessor::getInstance().init(env);
-    return reinterpret_cast<jlong>(new wallpaper::jni::NativeProcessor());
+    return reinterpret_cast<jlong>(&wallpaper::jni::NativeProcessor::getInstance());
 }
 
 JNIEXPORT void JNICALL
 Java_com_wallpaperextend_processor_WallpaperProcessor_nativeRelease(
         JNIEnv* env, jobject thiz, jlong handle) {
-    auto* processor = reinterpret_cast<wallpaper::jni::NativeProcessor*>(handle);
-    if (processor) {
-        processor->release();
-        delete processor;
-    }
+    (void)handle;
+    wallpaper::jni::NativeProcessor::getInstance().release();
 }
 
 JNIEXPORT jobject JNICALL
