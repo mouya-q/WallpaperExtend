@@ -1,21 +1,21 @@
- plugins {
-     id("com.android.application")
-     id("org.jetbrains.kotlin.android")
-     id("org.jetbrains.kotlin.plugin.compose")
- }
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
 
- android {
-     namespace = "com.wallpaperextend"
-     compileSdk = 35
+android {
+    namespace "com.wallpaperextend"
+    compileSdk 35
 
-     defaultConfig {
-         applicationId = "com.wallpaperextend"
-        minSdk = 26
-        targetSdk = 35
-        versionCode = 3
-        versionName = "2.1.0"
+    defaultConfig {
+        applicationId "com.wallpaperextend"
+        minSdk 26
+        targetSdk 35
+        versionCode 3
+        versionName "2.1.0"
 
-         ndk {
+        ndk {
             abiFilters "arm64-v8a", "armeabi-v7a"
         }
         externalNativeBuild {
@@ -23,16 +23,16 @@
                 arguments "-DANDROID_STL=c++_shared"
             }
         }
-     }
+    }
 
-     externalNativeBuild {
-         cmake {
-             path = file("src/main/cpp/CMakeLists.txt")
-             version = "3.22.1"
-         }
-     }
+    externalNativeBuild {
+        cmake {
+            path file("src/main/cpp/CMakeLists.txt")
+            version "3.22.1"
+        }
+    }
 
-     buildTypes {
+    buildTypes {
         release {
             minifyEnabled true
             proguardFiles(
@@ -58,15 +58,15 @@
 
     packaging {
         resources {
-            excludes "/META-INF/{AL2.0,LGPL2.1}"
+            exclude "/META-INF/{AL2.0,LGPL2.1}"
         }
         jniLibs {
             useLegacyPackaging false
         }
     }
- }
+}
 
-  dependencies {
+dependencies {
       implementation("androidx.core:core-ktx:1.15.0")
       implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
       implementation("androidx.activity:activity-compose:1.9.3")
