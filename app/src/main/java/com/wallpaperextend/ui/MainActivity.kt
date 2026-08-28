@@ -179,6 +179,7 @@ fun HomeScreen(onNavigateToAbout: () -> Unit) {
             )
         }
     ) { paddingValues ->
+        Surface(modifier = Modifier.fillMaxSize()) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
