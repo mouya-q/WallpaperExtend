@@ -6,12 +6,12 @@ plugins {
 
 android {
     namespace = "com.wallpaperextend"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.wallpaperextend"
         minSdk = 26
-        targetSdk = 34
+        targetSdk = 35
         versionCode = 2
         versionName = "2.0.0"
 
