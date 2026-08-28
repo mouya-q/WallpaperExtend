@@ -196,7 +196,7 @@ void Processor::stackBlurV(uint32_t* pixels, int w, int h, int radius) {
                          (dv[std::clamp(sumR, 0, 255 * div)] << 16) |
                          (dv[std::clamp(sumG, 0, 255 * div)] << 8) |
                          dv[std::clamp(sumB, 0, 255 * div)];
-            const int yiOut = (((y - radius) % h) + h) % h) * w + x;
+            const int yiOut = (((y - radius) % h) + h) % h * w + x;
             const int yiIn = (((y + radius + 1) % h)) * w + x;
             const uint32_t pOut = pixels[yiOut];
             const uint32_t pIn = pixels[yiIn];

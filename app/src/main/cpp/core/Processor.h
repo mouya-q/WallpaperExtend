@@ -3,6 +3,7 @@
 
 #include "Image.h"
 #include <memory>
+#include <functional>
 
 namespace wallpaper {
 
@@ -26,12 +27,12 @@ public:
     Image process(const Image& input, int targetW, int targetH);
 
     // 进度回调
-    using ProgressCallback = void(float);
-    void setProgressCallback(ProgressCallback* cb) { progressCb = cb; }
+    using ProgressCallback = std::function<void(float)>;
+    void setProgressCallback(const ProgressCallback& cb) { progressCb = cb; }
 
 private:
     ProcessorConfig config;
-    ProgressCallback* progressCb = nullptr;
+    ProgressCallback progressCb = nullptr;
 
     // 处理步骤
     void extendTop(Image& output, const Image& input, int extendH);
