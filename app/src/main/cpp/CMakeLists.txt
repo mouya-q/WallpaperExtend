@@ -27,6 +27,7 @@ target_include_directories(wallpaperextend PRIVATE
 
 target_link_libraries(wallpaperextend
     android
+    jnigraphics
     ${log-lib}
 )
 
