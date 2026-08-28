@@ -163,23 +163,23 @@ fun HomeScreen(onNavigateToAbout: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("壁纸延展", color = Color.White) },
+                title = { Text("壁纸延展", color = Color(0xFF1C1C1E)) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1C1C1E)
+                    containerColor = Color(0xFFF2F2F7)
                 ),
                 actions = {
                     IconButton(onClick = onNavigateToAbout) {
                         Icon(
                             imageVector = Icons.Default.Info,
                             contentDescription = "关于",
-                            tint = Color.White
+                            tint = Color(0xFF1C1C1E)
                         )
                     }
                 }
             )
         }
     ) { paddingValues ->
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F7))) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()
@@ -277,7 +277,7 @@ fun EmptyState(onPickImage: () -> Unit) {
         Text(
             text = "选择一张图片开始",
             style = MaterialTheme.typography.titleMedium,
-            color = Color.White,
+            color = Color(0xFF1C1C1E),
             fontWeight = FontWeight.Medium
         )
         Text(
@@ -289,6 +289,10 @@ fun EmptyState(onPickImage: () -> Unit) {
         androidx.compose.material3.Button(
             onClick = onPickImage,
             shape = RoundedCornerShape(12.dp),
+            colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF0A84FF),
+                contentColor = Color.White
+            ),
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
@@ -300,10 +304,9 @@ fun EmptyState(onPickImage: () -> Unit) {
 
 @Composable
 fun ImageInfoCard(originalWidth: Int, originalHeight: Int) {
-    Surface(
+    GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF2C2C2E)
+        cornerRadius = 16.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -316,7 +319,7 @@ fun ImageInfoCard(originalWidth: Int, originalHeight: Int) {
             Text(
                 text = "原图尺寸: ${originalWidth} x ${originalHeight}",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White
+                color = Color(0xFF1C1C1E)
             )
         }
     }
@@ -334,10 +337,9 @@ fun ParametersCard(
     onTopOnlyChange: (Boolean) -> Unit,
     onReprocess: () -> Unit
 ) {
-    Surface(
+    GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF2C2C2E)
+        cornerRadius = 16.dp
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
@@ -386,7 +388,7 @@ fun ParametersCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("仅顶部延展", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                    Text("仅顶部延展", style = MaterialTheme.typography.bodyMedium, color = Color(0xFF1C1C1E))
                     Text("底部保留原图，更接近 iOS 17 效果", style = MaterialTheme.typography.bodySmall, color = Color(0xFF8E8E93))
                 }
                 androidx.compose.material3.Switch(
@@ -418,7 +420,7 @@ fun ParameterSlider(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White
+                color = Color(0xFF1C1C1E)
             )
             Text(
                 text = valueText,
@@ -430,11 +432,11 @@ fun ParameterSlider(
             value = value,
             onValueChange = onValueChange,
             valueRange = valueRange,
-            colors = SliderDefaults.colors(
-                thumbColor = Color(0xFF0A84FF),
-                activeTrackColor = Color(0xFF0A84FF),
-                inactiveTrackColor = Color(0xFF3A3A3C)
-            )
+                colors = SliderDefaults.colors(
+                    thumbColor = Color(0xFF0A84FF),
+                    activeTrackColor = Color(0xFF0A84FF),
+                    inactiveTrackColor = Color(0xFFD1D1D6)
+                )
         )
     }
 }
@@ -442,10 +444,9 @@ fun ParameterSlider(
 @Composable
 fun OriginalPreviewCard(bitmap: Bitmap?) {
     if (bitmap == null) return
-    Surface(
+    GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF2C2C2E)
+        cornerRadius = 16.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -475,10 +476,9 @@ fun OriginalPreviewCard(bitmap: Bitmap?) {
 
 @Composable
 fun ResultPreviewCard(bitmap: Bitmap?, isProcessing: Boolean) {
-    Surface(
+    GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF2C2C2E)
+        cornerRadius = 16.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -563,24 +563,25 @@ fun AboutScreen(onBack: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("关于", color = Color.White) },
+                title = { Text("关于", color = Color(0xFF1C1C1E)) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "返回",
-                            tint = Color.White
+                            tint = Color(0xFF1C1C1E)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1C1C1E),
-                    titleContentColor = Color.White
+                    containerColor = Color(0xFFF2F2F7),
+                    titleContentColor = Color(0xFF1C1C1E)
                 )
             )
         }
     ) { paddingValues ->
-        LazyColumn(
+        Surface(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F7))) {
+            LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues),
@@ -607,15 +608,15 @@ fun AboutScreen(onBack: () -> Unit) {
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+        }
     }
 }
 
 @Composable
 fun AppInfoCard() {
-    Surface(
+    GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF2C2C2E)
+        cornerRadius = 18.dp
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -639,7 +640,7 @@ fun AppInfoCard() {
             Text(
                 text = "壁纸延展",
                 style = MaterialTheme.typography.titleLarge,
-                color = Color.White,
+                color = Color(0xFF1C1C1E),
                 fontWeight = FontWeight.Bold
             )
             Text(
@@ -659,10 +660,9 @@ fun AppInfoCard() {
 
 @Composable
 fun DevelopersCard(context: Context) {
-    Surface(
+    GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF2C2C2E)
+        cornerRadius = 16.dp
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text(
@@ -720,7 +720,7 @@ fun DeveloperRow(context: Context, name: String, github: String, role: String) {
             Text(
                 text = name,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White,
+                color = Color(0xFF1C1C1E),
                 fontWeight = FontWeight.Medium
             )
             Text(
@@ -734,10 +734,9 @@ fun DeveloperRow(context: Context, name: String, github: String, role: String) {
 
 @Composable
 fun LicenseCard() {
-    Surface(
+    GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF2C2C2E)
+        cornerRadius = 16.dp
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -749,7 +748,7 @@ fun LicenseCard() {
             Text(
                 text = "本项目基于 Apache 2.0 协议开源",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White
+                color = Color(0xFF1C1C1E)
             )
             Text(
                 text = "GitHub: github.com/mouya-q/WallpaperExtend",
@@ -762,10 +761,9 @@ fun LicenseCard() {
 
 @Composable
 fun SpecialThanksCard(context: Context) {
-    Surface(
+    GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        color = Color(0xFF2C2C2E)
+        cornerRadius = 16.dp
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
@@ -777,7 +775,7 @@ fun SpecialThanksCard(context: Context) {
             Text(
                 text = "MIUIX - Yukonga",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White,
+                color = Color(0xFF1C1C1E),
                 modifier = Modifier.clickable {
                     val intent = Intent(Intent.ACTION_VIEW).apply {
                         data = Uri.parse("https://github.com/Yukonga/miuix")
@@ -788,7 +786,7 @@ fun SpecialThanksCard(context: Context) {
             Text(
                 text = "AndroidLiquidGlass - Kyant",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White,
+                color = Color(0xFF1C1C1E),
                 modifier = Modifier.clickable {
                     val intent = Intent(Intent.ACTION_VIEW).apply {
                         data = Uri.parse("https://github.com/Kyant0/AndroidLiquidGlass")

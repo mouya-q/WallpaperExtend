@@ -30,8 +30,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - True async processing with coroutines
 - Better error handling throughout the pipeline
--国产 ROM wallpaper setting compatibility
+- 国产 ROM wallpaper setting compatibility
 - Memory management (reduced manual recycling)
+
+## [2.1.0] - 2025-01-15
+
+### Added
+
+- True liquid glass surface via `RenderEffect.createBlurEffect` (GlassSurface, API >= S) with semi-transparent fallback (API < S)
+- White MIUIX-style light theme across Home and About screens
+- Staggered card layout using GlassSurface with blueprint highlight stroke
+
+### Changed
+
+- All cards (ImageInfo, Parameters, OriginalPreview, ResultPreview, AppInfo, Developers, License, SpecialThanks) migrated from dark `Surface` to white `GlassSurface`
+- Light color tokens aligned to MIUIX system palette: surface `0xFFF2F2F7`, primary text `0xFF1C1C1E`, secondary text `0xFF8E8E93`, accent `0xFF0A84FF`
+- Removed MIUIX / backdrop dependencies (compileSdk 37 requirement incompatible with current AGP 8.7)
+- Bumped versionCode to 3
+
+### Fixed
+
+- Startup crash caused by `LazyColumn` nested with infinite height scroll constraint (IllegalStateException)
+- Restored `lifecycle-viewmodel-compose` dependency for Compose ViewModel
 
 ## [2.0.0] - 2025-01-01
 
