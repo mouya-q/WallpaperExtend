@@ -16,9 +16,6 @@ import kotlin.math.roundToInt
 
 object WallpaperProcessor {
 
-    init {
-        System.loadLibrary("wallpaperextend")
-    }
 
     data class Config(
         val blurRadius: Int = 30,
@@ -29,16 +26,6 @@ object WallpaperProcessor {
 
     data class Result(val bitmap: Bitmap, val width: Int, val height: Int)
 
-    private external fun nativeProcess(
-        srcBitmap: Bitmap,
-        targetW: Int,
-        targetH: Int,
-        blurRadius: Int,
-        extendRatio: Float,
-        featherWidth: Int
-    ): Bitmap?
-
-    private external fun nativeRelease(handle: Long)
 
     suspend fun processAsync(
         src: Bitmap,

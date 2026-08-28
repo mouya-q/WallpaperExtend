@@ -20,9 +20,7 @@ ProcessorConfig Pipeline::getConfig() const {
 
 void Pipeline::setProgressCallback(ProgressCallback cb) {
     progressCb = std::move(cb);
-    processor->setProgressCallback(progressCb ? [](float p) {
-        // 内部回调
-    } : nullptr);
+    processor->setProgressCallback(progressCb);
 }
 
 Pipeline& Pipeline::getInstance() {
