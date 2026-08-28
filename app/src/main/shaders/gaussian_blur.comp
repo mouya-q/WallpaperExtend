@@ -20,7 +20,7 @@ layout(push_constant) uniform PushConstants {
     int radius;
 } push;
 
-shared float4 sharedData[32][32];
+shared vec4 sharedData[32][32];
 
 void main() {
     int x = int(gl_GlobalInvocationID.x);
