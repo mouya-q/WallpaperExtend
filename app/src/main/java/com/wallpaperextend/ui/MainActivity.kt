@@ -112,22 +112,10 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WallpaperExtendApp() {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Home) }
-
-    AnimatedContent(
-        targetState = currentScreen,
-        transitionSpec = {
-            if (targetState is Screen.About) {
-                slideInHorizontally { it } + fadeIn() togetherWith slideOutHorizontally { -it } + fadeOut()
-            } else {
-                slideInHorizontally { -it } + fadeIn() togetherWith slideOutHorizontally { it } + fadeOut()
-            }
-        },
-        label = "screenTransition"
-    ) { screen ->
-        when (screen) {
-            is Screen.Home -> HomeScreen(onNavigateToAbout = { currentScreen = Screen.About })
-            is Screen.About -> AboutScreen(onBack = { currentScreen = Screen.Home })
-        }
+    if (currentScreen is Screen.About) {
+        AboutScreen(onBack = { currentScreen = Screen.Home })
+    } else {
+        HomeScreen(onNavigateToAbout = { currentScreen = Screen.About })
     }
 }
 
