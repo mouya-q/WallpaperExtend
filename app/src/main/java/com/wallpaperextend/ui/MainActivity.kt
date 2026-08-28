@@ -832,13 +832,14 @@ class WallpaperViewModel : androidx.lifecycle.ViewModel() {
         scope.launch {
             isProcessing = true
             try {
-                val bmp = withContext(Dispatchers.IO) {
+                val result = withContext(Dispatchers.IO) {
                     ImageLoader.loadFromUri(context, uri)
                 }
+                val bmp = if (result is ImageLoader.LoadResult.Success) result.bitmap else null
                 originalBitmap?.recycleSafe()
                 originalBitmap = bmp
-                srcWidth = bmp.width
-                srcHeight = bmp.height
+                srcWidth = bmp?.width ?: 0
+                srcHeight = bmp?.height ?: 0
                 processImage(context)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -895,7 +896,7 @@ class WallpaperViewModel : androidx.lifecycle.ViewModel() {
                 }
             }
             processedBitmap?.recycleSafe()
-            processedBitmap = result
+            processedBitmap = result?.bitmap
         } catch (e: Exception) {
             e.printStackTrace()
         } finally {

@@ -52,6 +52,11 @@ import com.wallpaperextend.ai.AIModel
 import com.wallpaperextend.ai.AIApiConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.graphics.asImageBitmap
 
 sealed class AIScreen {
     object Settings : AIScreen()
