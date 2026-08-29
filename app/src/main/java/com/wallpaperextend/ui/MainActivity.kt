@@ -192,7 +192,14 @@ fun HomeScreen(onNavigateToAbout: () -> Unit) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Color(0xFFF2F2F7).copy(alpha = 0.9f))
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color(0xFFF2F2F7).copy(alpha = 0.55f),
+                                Color(0xFFEDEDF2).copy(alpha = 0.35f)
+                            )
+                        )
+                    )
             )
         }
 
@@ -205,6 +212,7 @@ fun HomeScreen(onNavigateToAbout: () -> Unit) {
         )
 
         Scaffold(
+            modifier = Modifier.fillMaxSize(),
             topBar = {},
             containerColor = Color.Transparent,
             contentColor = Color(0xFF1C1C1E)
