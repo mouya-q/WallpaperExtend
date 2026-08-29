@@ -2,6 +2,7 @@
 #define PROCESSOR_H
 
 #include "Image.h"
+#include "VulkanBlur.h"
 #include <memory>
 #include <functional>
 
