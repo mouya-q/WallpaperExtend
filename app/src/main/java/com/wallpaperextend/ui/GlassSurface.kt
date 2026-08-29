@@ -73,14 +73,14 @@ float radiusAt(float2 p, float4 r) {
         else return r.w;
     }
 }
-float sdRoundedRect(float2 p, float2 half, float rad) {
-    float2 c = abs(p) - (half - float2(rad));
+float sdRoundedRect(float2 p, float2 halfSize, float rad) {
+    float2 c = abs(p) - (halfSize - float2(rad));
     float o = length(max(c, 0.0)) - rad;
     float i = min(max(c.x, c.y), 0.0);
     return o + i;
 }
-float2 gradSdRoundedRect(float2 p, float2 half, float rad) {
-    float2 c = abs(p) - (half - float2(rad));
+float2 gradSdRoundedRect(float2 p, float2 halfSize, float rad) {
+    float2 c = abs(p) - (halfSize - float2(rad));
     if (c.x >= 0.0 || c.y >= 0.0) {
         return sign(p) * normalize(max(c, 0.0));
     } else {
