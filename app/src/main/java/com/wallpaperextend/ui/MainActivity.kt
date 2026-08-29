@@ -50,11 +50,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.pointerInput
 import androidx.compose.animation.core.spring
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.layout.offset
 import androidx.compose.runtime.mutableFloatStateOf
+import kotlin.math.roundToInt
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -166,7 +172,6 @@ fun HomeScreen(onNavigateToAbout: () -> Unit) {
     }
 
     val backdrop = rememberGlassBackdrop()
-    val density = LocalDensity.current
     val dockTop = with(density) { 14.dp }
     val statusBar = with(density) {
         (context.resources.getIdentifier("status_bar_height", "dimen", "android")
