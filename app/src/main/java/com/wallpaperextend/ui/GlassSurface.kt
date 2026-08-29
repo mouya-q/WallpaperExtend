@@ -1,102 +1,366 @@
 package com.wallpaperextend.ui
 
+import android.graphics.RuntimeShader
 import android.os.Build
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Paint
+import androidx.compose.ui.graphics.PaintingStyle
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.graphics.layer.GraphicsLayer
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import kotlin.math.PI
+import kotlin.math.ceil
 
-private val GlassMaterialLight = Color(0xFFFFFFFF)
-private val GlassStrokeLight = Color(0xFFFFFFFF)
+private val GlassFill = Color(0xFFFFFFFF)
+private val GlassReflect = Color(0xFFFFFFFF)
+private val GlassShade = Color(0xFF1C1C1E)
 private val GlassAccent = Color(0xFF0A84FF)
 
-fun Modifier.liquidGlass(
-    cornerRadius: Dp = 16.dp,
-    blurRadiusDp: Dp = 28.dp,
-    materialAlpha: Float = 0.55f,
-    strokeAlpha: Float = 0.7f
-): Modifier {
-    val supportsBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    return this
-        .graphicsLayer {
-            if (supportsBlur) {
-                renderEffect = android.graphics.RenderEffect
-                    .createBlurEffect(
-                        blurRadiusDp.value,
-                        blurRadiusDp.value,
-                        android.graphics.Shader.TileMode.CLAMP
-                    )
-                    .asComposeRenderEffect()
-            }
-            compositingStrategy = CompositingStrategy.Offscreen
-        }
-        .drawWithContent {
-            drawContent()
-            if (supportsBlur) {
-                drawRect(
-                    color = GlassMaterialLight.copy(alpha = materialAlpha),
-                    blendMode = BlendMode.SrcOver
-                )
-                drawRect(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            GlassStrokeLight.copy(alpha = strokeAlpha),
-                            Color.Transparent
-                        ),
-                        startY = 0f,
-                        endY = size.height * 0.5f
-                    ),
-                    blendMode = BlendMode.SrcOver
-                )
-            }
-        }
+private const val SDF = """
+float radiusAt(float2 p, float4 r) {
+    if (p.x >= 0.0) {
+        if (p.y <= 0.0) return r.y;
+        else return r.z;
+    } else {
+        if (p.y <= 0.0) return r.x;
+        else return r.w;
+    }
+}
+float sdRoundedRect(float2 p, float2 half, float rad) {
+    float2 c = abs(p) - (half - float2(rad));
+    float o = length(max(c, 0.0)) - rad;
+    float i = min(max(c.x, c.y), 0.0);
+    return o + i;
+}
+float2 gradSdRoundedRect(float2 p, float2 half, float rad) {
+    float2 c = abs(p) - (half - float2(rad));
+    if (c.x >= 0.0 || c.y >= 0.0) {
+        return sign(p) * normalize(max(c, 0.0));
+    } else {
+        float gx = step(c.y, c.x);
+        return sign(p) * float2(gx, 1.0 - gx);
+    }
+}"""
+
+private val RefractionShader = """
+uniform shader content;
+uniform float2 size;
+uniform float2 offset;
+uniform float4 cornerRadii;
+uniform float refractionHeight;
+uniform float refractionAmount;
+uniform float depthEffect;
+$SDF
+float circleMap(float x) {
+    return 1.0 - sqrt(1.0 - x * x);
+}
+half4 main(float2 coord) {
+    float2 halfSize = size * 0.5;
+    float2 centered = (coord + offset) - halfSize;
+    float rad = radiusAt(coord, cornerRadii);
+    float sd = sdRoundedRect(centered, halfSize, rad);
+    if (-sd >= refractionHeight) {
+        return content.eval(coord);
+    }
+    sd = min(sd, 0.0);
+    float d = circleMap(1.0 - -sd / refractionHeight) * refractionAmount;
+    float gradRad = min(rad * 1.5, min(halfSize.x, halfSize.y));
+    float2 grad = normalize(gradSdRoundedRect(centered, halfSize, gradRad) + depthEffect * normalize(centered));
+    return content.eval(coord + d * grad);
+}"""
+
+private val HighlightShader = """
+uniform float2 size;
+uniform float4 cornerRadii;
+layout(color) uniform half4 color;
+uniform float angle;
+uniform float falloff;
+$SDF
+half4 main(float2 coord) {
+    float2 halfSize = size * 0.5;
+    float2 centered = coord - halfSize;
+    float rad = radiusAt(coord, cornerRadii);
+    float gradRad = min(rad * 1.5, min(halfSize.x, halfSize.y));
+    float2 grad = gradSdRoundedRect(centered, halfSize, gradRad);
+    float2 normal = float2(cos(angle), sin(angle));
+    float d = dot(grad, normal);
+    float intensity = pow(abs(d), falloff);
+    return color * intensity;
+}"""
+
+private fun cornerRadiiOf(radiusPx: Float, width: Float, height: Float): FloatArray {
+    val maxRadius = minOf(width, height) / 2f
+    val r = radiusPx.coerceAtMost(maxRadius)
+    return floatArrayOf(r, r, r, r)
 }
 
 @Composable
 fun GlassSurface(
     modifier: Modifier = Modifier,
-    cornerRadius: Dp = 16.dp,
-    blurRadiusDp: Dp = 28.dp,
-    materialAlpha: Float = 0.6f,
-    strokeAlpha: Float = 0.7f,
+    cornerRadius: androidx.compose.ui.unit.Dp = 16.dp,
+    blurRadiusDp: androidx.compose.ui.unit.Dp = 22.dp,
     content: @Composable BoxScope.() -> Unit
 ) {
-    val supportsBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-    val shape = RoundedCornerShape(cornerRadius)
+    val density = LocalDensity.current
+    val radiusPx = with(density) { cornerRadius.toPx() }
+    val blurPx = with(density) { blurRadiusDp.toPx() }
+    val shape: Shape = RoundedCornerShape(cornerRadius)
+    val supportsRuntime = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+
+    val enterScale by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = spring(dampingRatio = 0.62f, stiffness = 380f),
+        label = "glassEnterScale"
+    )
+    val enterAlpha by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(durationMillis = 320),
+        label = "glassEnterAlpha"
+    )
+    val refraction by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(durationMillis = 480),
+        label = "glassRefraction"
+    )
+
+    val highlightLayer = rememberGraphicsLayer()
+    var pressed by remember { mutableStateOf(false) }
+    var pressX by remember { mutableFloatStateOf(0f) }
+    var pressY by remember { mutableFloatStateOf(0f) }
+
+    val pressAmount by animateFloatAsState(
+        targetValue = if (pressed) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.7f, stiffness = 600f),
+        label = "glassPress"
+    )
+
     Box(
         modifier = modifier
-            .clip(shape)
-            .then(
-                if (supportsBlur) {
-                    Modifier.liquidGlass(
-                        cornerRadius = cornerRadius,
-                        blurRadiusDp = blurRadiusDp,
-                        materialAlpha = materialAlpha,
-                        strokeAlpha = strokeAlpha
-                    )
-                } else {
-                    Modifier
-                        .background(GlassMaterialLight.copy(alpha = 0.82f))
-                        .border(
-                            width = 1.dp,
-                            color = GlassAccent.copy(alpha = 0.35f),
-                            shape = shape
-                        )
+            .graphicsLayer {
+                scaleX = enterScale
+                scaleY = enterScale
+                alpha = enterAlpha
+                clip = true
+                this.shape = shape
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = { offset ->
+                        pressX = offset.x
+                        pressY = offset.y
+                        pressed = true
+                        tryAwaitRelease()
+                        pressed = false
+                    }
+                )
+            },
+        contentAlignment = Alignment.TopStart
+    ) {
+        val dynamicRefraction = (blurPx * 0.65f + 10f) * refraction +
+            pressAmount * blurPx * 0.5f
+        val dynamicHeight = blurPx * 0.85f + 6f + pressAmount * blurPx * 0.4f
+
+        Box(
+            modifier = Modifier
+                .matchParentSize()
+                .graphicsLayer {
+                    clip = false
+                    this.shape = shape
+                    compositingStrategy = CompositingStrategy.Offscreen
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                        val blur = android.graphics.RenderEffect
+                            .createBlurEffect(blurPx, blurPx, android.graphics.Shader.TileMode.CLAMP)
+                        if (supportsRuntime) {
+                            val shader = RuntimeShader(RefractionShader)
+                            shader.setFloatUniform("size", size.width, size.height)
+                            shader.setFloatUniform(
+                                "offset",
+                                -pressAmount * (pressX - size.width / 2f),
+                                -pressAmount * (pressY - size.height / 2f)
+                            )
+                            shader.setFloatUniform(
+                                "cornerRadii",
+                                cornerRadiiOf(radiusPx, size.width, size.height)
+                            )
+                            shader.setFloatUniform("refractionHeight", dynamicHeight)
+                            shader.setFloatUniform("refractionAmount", -dynamicRefraction)
+                            shader.setFloatUniform("depthEffect", 0.4f)
+                            val refr = android.graphics.RenderEffect
+                                .createRuntimeShaderEffect(shader, "content")
+                            renderEffect = android.graphics.RenderEffect
+                                .createChainEffect(refr, blur)
+                                .asComposeRenderEffect()
+                        } else {
+                            renderEffect = blur.asComposeRenderEffect()
+                        }
+                    }
                 }
-            ),
-        content = content
-    )
+                .drawWithContent {
+                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                        drawRect(color = GlassFill.copy(alpha = 0.82f))
+                    } else {
+                        drawRect(
+                            color = GlassFill.copy(alpha = 0.46f),
+                            blendMode = BlendMode.SrcOver
+                        )
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    GlassReflect.copy(alpha = 0.72f),
+                                    Color.Transparent
+                                ),
+                                startY = 0f,
+                                endY = size.height * 0.45f
+                            ),
+                            blendMode = BlendMode.SrcOver
+                        )
+                        drawRect(
+                            brush = Brush.radialGradient(
+                                center = Offset(size.width * 0.5f, size.height * 1.15f),
+                                radius = size.height * 1.1f,
+                                colors = listOf(
+                                    Color.Transparent,
+                                    GlassReflect.copy(alpha = 0.16f)
+                                )
+                            ),
+                            blendMode = BlendMode.SrcOver
+                        )
+                        drawRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(
+                                    Color.Transparent,
+                                    GlassShade.copy(alpha = 0.08f)
+                                ),
+                                startY = size.height * 0.6f,
+                                endY = size.height
+                            ),
+                            blendMode = BlendMode.SrcOver
+                        )
+                    }
+                }
+        ) {}
+
+        if (supportsRuntime) {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        clip = false
+                        this.shape = shape
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        val safeSize = androidx.compose.ui.unit.IntSize(
+                            ceil(size.width).toInt() + 2,
+                            ceil(size.height).toInt() + 2
+                        )
+                        val outline = shape.createOutline(
+                            size,
+                            layoutDirection,
+                            this@drawWithContent
+                        )
+                        val shader = RuntimeShader(HighlightShader)
+                        shader.setFloatUniform("size", size.width, size.height)
+                        shader.setFloatUniform(
+                            "cornerRadii",
+                            cornerRadiiOf(radiusPx, size.width, size.height)
+                        )
+                        shader.setColorUniform(
+                            "color",
+                            android.graphics.Color.valueOf(
+                                GlassReflect.red,
+                                GlassReflect.green,
+                                GlassReflect.blue,
+                                1f
+                            )
+                        )
+                        shader.setFloatUniform("angle", 45f * (PI / 180f).toFloat())
+                        shader.setFloatUniform("falloff", 1f)
+                        val paint = Paint().apply {
+                            style = PaintingStyle.Stroke
+                            strokeWidth = 1.4f + pressAmount * 0.9f
+                            blendMode = BlendMode.Plus
+                            asFrameworkPaint().shader = shader
+                        }
+                        highlightLayer.record(safeSize) {
+                            translate(1f, 1f) {
+                                with(drawContext.canvas) {
+                                    save()
+                                    clipOutline(outline, null)
+                                    drawOutline(outline, paint.asFrameworkPaint())
+                                    restore()
+                                }
+                            }
+                        }
+                        translate(-1f, -1f) {
+                            drawLayer(highlightLayer)
+                        }
+                    }
+            ) {}
+        } else {
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer {
+                        clip = false
+                        this.shape = shape
+                        compositingStrategy = CompositingStrategy.Offscreen
+                    }
+                    .drawWithContent {
+                        val outline = shape.createOutline(
+                            size,
+                            layoutDirection,
+                            this@drawWithContent
+                        )
+                        val paint = Paint().apply {
+                            style = PaintingStyle.Stroke
+                            strokeWidth = 1.4f
+                            blendMode = BlendMode.Plus
+                        }
+                        drawOutline(outline, paint)
+                    }
+            ) {}
+        }
+
+        Box(
+            modifier = Modifier.matchParentSize(),
+            content = content
+        )
+    }
 }

@@ -33,6 +33,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 国产 ROM wallpaper setting compatibility
 - Memory management (reduced manual recycling)
 
+## [2.3.0] - 2025-01-22
+
+### Added
+
+- Authentic liquid glass rewrite of `GlassSurface`, ported from the `com.kyant.backdrop` (AndroidLiquidGlass-kmp) reference: layered architecture with a frosted material layer, an AGSL SDF refraction layer (iOS-style edge lens distortion, API >= 33), and a crisp foreground content layer so card text never blurs
+- SDF highlight stroke (AGSL `DefaultHighlightShader`-equivalent) along the rounded-rect normal, plus an internal specular gradient, top sheen and bottom ambient shade for true glass depth
+- iOS-like motion: spring entrance scale/alpha, animated refraction ramp-in, and press-driven refraction amplification with a focal offset toward the touch point
+
+### Changed
+
+- Glass material layer now chains `RenderEffect.createBlurEffect` with an AGSL `RuntimeShader` SDF refraction effect (API >= 33); API 31-32 keeps blur only; API < 31 uses a solid white fallback
+- Replaced the single blurred `Box` with a three-layer `Box` stack (material + highlight + content) for correct z-ordering and crisp text
+
+### Notes
+
+- RuntimeShader SDF effects require API 33; lower APIs degrade gracefully to blur / solid without crashing
+
 ## [2.1.0] - 2025-01-15
 
 ### Added
@@ -50,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Liquid glass text blurred: `GlassSurface` now splits into a blurred material background layer and a separate sharp foreground content layer, so card text stays crisp while only the backdrop is frosted
 - Startup crash caused by `LazyColumn` nested with infinite height scroll constraint (IllegalStateException)
 - Restored `lifecycle-viewmodel-compose` dependency for Compose ViewModel
 - Cloud build: rewrite Gradle files as valid Groovy DSL (`abiFilters`, `minifyEnabled`, `buildFeatures`, `packaging`); drop conflicting `.kts` files
