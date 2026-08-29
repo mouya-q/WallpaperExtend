@@ -2,6 +2,7 @@
 #include <android/log.h>
 #include <dlfcn.h>
 #include <cstring>
+#include <vulkan/vulkan.h>
 
 #define LOG_TAG "WallpaperExtendVk"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
