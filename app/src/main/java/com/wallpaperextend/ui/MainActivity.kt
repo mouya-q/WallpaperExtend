@@ -1052,6 +1052,8 @@ class WallpaperViewModel : androidx.lifecycle.ViewModel() {
         }
     }
 
+}
+
 @Composable
 fun DesktopPreviewGrid(
     modifier: Modifier = Modifier,
@@ -1174,5 +1176,4 @@ fun HomeTopDock(
             }
         }
     }
-}
 }
