@@ -20,6 +20,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -48,8 +49,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.animation.core.spring
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -160,100 +165,133 @@ fun HomeScreen(onNavigateToAbout: () -> Unit) {
         sharedUri?.let { viewModel.loadImage(context, it) }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("壁纸延展", color = Color(0xFF1C1C1E)) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFF2F2F7)
-                ),
-                actions = {
-                    IconButton(onClick = onNavigateToAbout) {
-                        Icon(
-                            imageVector = Icons.Default.Info,
-                            contentDescription = "关于",
-                            tint = Color(0xFF1C1C1E)
-                        )
-                    }
-                }
+    val backdrop = rememberGlassBackdrop()
+    val density = LocalDensity.current
+    val dockTop = with(density) { 14.dp }
+    val statusBar = with(density) {
+        (context.resources.getIdentifier("status_bar_height", "dimen", "android")
+            .let { if (it > 0) context.resources.getDimensionPixelSize(it) else 24.dp.roundToPx() }
+            .toDp())
+    }
+    Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .backdropLayer(backdrop)
+                .fillMaxSize()
+        ) {
+            DesktopPreviewGrid(
+                modifier = Modifier.fillMaxSize(),
+                cellSize = 14.dp,
+                alpha = 0.25f
             )
-        }
-    ) { paddingValues ->
-        Surface(modifier = Modifier.fillMaxSize().background(Color(0xFFF2F2F7))) {
-            LazyColumn(
+            Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                    .background(Color(0xFFF2F2F7).copy(alpha = 0.9f))
+            )
+        }
+
+        HomeTopDock(
+            backdrop = backdrop,
+            onNavigateToAbout = onNavigateToAbout,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = statusBar + dockTop, start = 16.dp, end = 16.dp)
+        )
+
+        Scaffold(
+            topBar = {},
+            containerColor = Color.Transparent,
+            contentColor = Color(0xFF1C1C1E)
+        ) { paddingValues ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Transparent)
             ) {
-                if (viewModel.originalBitmap == null) {
-                    item {
-                        EmptyState {
-                            val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
-                                type = "image/*"
-                            }
-                            pickImageLauncher.launch(intent)
-                        }
-                    }
-                }
-
-                if (viewModel.originalBitmap != null) {
-                    item {
-                        ImageInfoCard(
-                            originalWidth = viewModel.srcWidth,
-                            originalHeight = viewModel.srcHeight
-                        )
-                    }
-                }
-
-                item {
-                    ParametersCard(
-                        blurRadius = viewModel.blurRadius,
-                        extendRatio = viewModel.extendRatio,
-                        featherWidth = viewModel.featherWidth,
-                        topOnly = viewModel.topOnly,
-                        onBlurRadiusChange = { viewModel.blurRadius = it },
-                        onExtendRatioChange = { viewModel.extendRatio = it },
-                        onFeatherWidthChange = { viewModel.featherWidth = it },
-                        onTopOnlyChange = { viewModel.topOnly = it },
-                        onReprocess = { viewModel.reprocess(context) }
-                    )
-                }
-
-                if (viewModel.originalBitmap != null) {
-                    item {
-                        OriginalPreviewCard(bitmap = viewModel.originalBitmap)
-                    }
-
-                    item {
-                        ResultPreviewCard(
-                            bitmap = viewModel.processedBitmap,
-                            isProcessing = viewModel.isProcessing
-                        )
-                    }
-
-                    item {
-                        ActionButtons(
-                            canSave = viewModel.processedBitmap != null && !viewModel.isProcessing,
-                            onPickImage = {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues)
+                        .padding(top = 72.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (viewModel.originalBitmap == null) {
+                        item {
+                            EmptyState {
                                 val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
                                     type = "image/*"
                                 }
                                 pickImageLauncher.launch(intent)
-                            },
-                            onSave = {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                                    viewModel.saveImage(context)
-                                } else {
-                                    requestPermission.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                                }
                             }
+                        }
+                    }
+
+                    if (viewModel.originalBitmap != null) {
+                        item {
+                            ImageInfoCard(
+                                originalWidth = viewModel.srcWidth,
+                                originalHeight = viewModel.srcHeight,
+                                backdrop = backdrop
+                            )
+                        }
+                    }
+
+                    item {
+                        ParametersCard(
+                            blurRadius = viewModel.blurRadius,
+                            extendRatio = viewModel.extendRatio,
+                            featherWidth = viewModel.featherWidth,
+                            topOnly = viewModel.topOnly,
+                            onBlurRadiusChange = { viewModel.blurRadius = it },
+                            onExtendRatioChange = { viewModel.extendRatio = it },
+                            onFeatherWidthChange = { viewModel.featherWidth = it },
+                            onTopOnlyChange = { viewModel.topOnly = it },
+                            onReprocess = { viewModel.reprocess(context) },
+                            backdrop = backdrop
                         )
                     }
-                }
 
-                item { Spacer(modifier = Modifier.height(16.dp)) }
+                    if (viewModel.originalBitmap != null) {
+                        item {
+                            OriginalPreviewCard(
+                                bitmap = viewModel.originalBitmap,
+                                backdrop = backdrop
+                            )
+                        }
+
+                        item {
+                            ResultPreviewCard(
+                                bitmap = viewModel.processedBitmap,
+                                isProcessing = viewModel.isProcessing,
+                                backdrop = backdrop
+                            )
+                        }
+
+                        item {
+                            ActionButtons(
+                                canSave = viewModel.processedBitmap != null && !viewModel.isProcessing,
+                                onPickImage = {
+                                    val intent = Intent(Intent.ACTION_GET_CONTENT).apply {
+                                        type = "image/*"
+                                    }
+                                    pickImageLauncher.launch(intent)
+                                },
+                                onSave = {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                        viewModel.saveImage(context)
+                                    } else {
+                                        requestPermission.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                                    }
+                                },
+                                backdrop = backdrop
+                            )
+                        }
+                    }
+
+                    item { Spacer(modifier = Modifier.height(16.dp)) }
+                }
             }
         }
     }
@@ -303,10 +341,11 @@ fun EmptyState(onPickImage: () -> Unit) {
 }
 
 @Composable
-fun ImageInfoCard(originalWidth: Int, originalHeight: Int) {
+fun ImageInfoCard(originalWidth: Int, originalHeight: Int, backdrop: GlassBackdrop? = null) {
     GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
+        cornerRadius = 16.dp,
+        backdrop = backdrop
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -335,11 +374,13 @@ fun ParametersCard(
     onExtendRatioChange: (Float) -> Unit,
     onFeatherWidthChange: (Int) -> Unit,
     onTopOnlyChange: (Boolean) -> Unit,
-    onReprocess: () -> Unit
+    onReprocess: () -> Unit,
+    backdrop: GlassBackdrop? = null
 ) {
     GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
+        cornerRadius = 16.dp,
+        backdrop = backdrop
     ) {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text(
@@ -357,7 +398,8 @@ fun ParametersCard(
                     onBlurRadiusChange(it.toInt())
                     onReprocess()
                 },
-                valueText = "$blurRadius"
+                valueText = "$blurRadius",
+                backdrop = backdrop
             )
 
             ParameterSlider(
@@ -368,7 +410,8 @@ fun ParametersCard(
                     onExtendRatioChange(it / 100f)
                     onReprocess()
                 },
-                valueText = "${(extendRatio * 100).toInt()}%"
+                valueText = "${(extendRatio * 100).toInt()}%",
+                backdrop = backdrop
             )
 
             ParameterSlider(
@@ -379,7 +422,8 @@ fun ParametersCard(
                     onFeatherWidthChange(it.toInt())
                     onReprocess()
                 },
-                valueText = "$featherWidth"
+                valueText = "$featherWidth",
+                backdrop = backdrop
             )
 
             Row(
@@ -409,44 +453,115 @@ fun ParameterSlider(
     value: Float,
     valueRange: ClosedFloatingPointRange<Float>,
     onValueChange: (Float) -> Unit,
-    valueText: String
+    valueText: String,
+    backdrop: GlassBackdrop? = null
 ) {
-    Column {
+    val density = LocalDensity.current
+    var trackWidthPx by remember { mutableFloatStateOf(0f) }
+    var dragging by remember { mutableStateOf(false) }
+    var dragX by remember { mutableFloatStateOf(0f) }
+
+    val span = (valueRange.endInclusive - valueRange.start).coerceAtLeast(1f)
+    val fraction = ((value - valueRange.start) / span).coerceIn(0f, 1f)
+    val dragFraction = (dragX / trackWidthPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
+    val animatedFraction by animateFloatAsState(
+        targetValue = if (dragging) dragFraction else fraction,
+        animationSpec = spring(dampingRatio = 0.8f, stiffness = 1000f),
+        label = "sliderFraction"
+    )
+    val thumbPress by animateFloatAsState(
+        targetValue = if (dragging) 1f else 0f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = 700f),
+        label = "sliderThumb"
+    )
+
+    val trackShape = RoundedCornerShape(7.dp)
+    val radiusPx = with(density) { 7.dp.toPx() }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color(0xFF1C1C1E)
+            Text(text = label, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF1C1C1E))
+            Text(text = valueText, style = MaterialTheme.typography.bodySmall, color = Color(0xFF0A84FF))
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(28.dp)
+                .onSizeChanged { trackWidthPx = it.width.toFloat() }
+                .pointerInput(Unit) {
+                    detectHorizontalDragGestures(
+                        onDragStart = { offset ->
+                            dragging = true
+                            dragX = offset.x.coerceIn(0f, trackWidthPx.coerceAtLeast(1f))
+                        },
+                        onHorizontalDrag = { _, delta ->
+                            dragX = (dragX + delta).coerceIn(0f, trackWidthPx.coerceAtLeast(1f))
+                            val f = (dragX / trackWidthPx.coerceAtLeast(1f)).coerceIn(0f, 1f)
+                            onValueChange(valueRange.start + f * span)
+                        },
+                        onDragEnd = { dragging = false },
+                        onDragCancel = { dragging = false }
+                    )
+                },
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(7.dp)
+                    .drawGlassBackdrop(
+                        state = backdrop ?: rememberGlassBackdrop(),
+                        shape = trackShape,
+                        cornerRadiusPx = radiusPx,
+                        blurPx = 10f,
+                        refractionHeightPx = 8f,
+                        refractionAmountPx = 12f,
+                        depthEffect = 0.3f
+                    ) { drawRect(color = Color.White.copy(alpha = 0.32f)) }
+                    .clip(trackShape)
             )
-            Text(
-                text = valueText,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF0A84FF)
+            val activeWidth = trackWidthPx * animatedFraction
+            Box(
+                modifier = Modifier
+                    .height(7.dp)
+                    .width(with(density) { activeWidth.coerceAtLeast(0f).toDp() })
+                    .clip(trackShape)
+                    .background(Color(0xFF0A84FF))
+            )
+            val thumbSize = 22.dp + 3.dp * thumbPress
+            val thumbR = with(density) { thumbSize.toPx() / 2f }
+            val thumbOffsetPx = trackWidthPx * animatedFraction - thumbR
+            Box(
+                modifier = Modifier
+                    .offset { IntOffset(thumbOffsetPx.roundToInt(), 0) }
+                    .size(thumbSize)
+                    .drawGlassBackdrop(
+                        state = backdrop ?: rememberGlassBackdrop(),
+                        shape = CircleShape,
+                        cornerRadiusPx = thumbR,
+                        blurPx = 12f,
+                        refractionHeightPx = 16f,
+                        refractionAmountPx = 20f,
+                        depthEffect = 0.6f
+                    ) { drawCircle(color = Color.White.copy(alpha = 0.55f), radius = size.minDimension / 2f) }
+                    .clip(CircleShape)
+                    .border(1.dp, Color.White.copy(alpha = 0.6f), CircleShape)
             )
         }
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = valueRange,
-                colors = SliderDefaults.colors(
-                    thumbColor = Color(0xFF0A84FF),
-                    activeTrackColor = Color(0xFF0A84FF),
-                    inactiveTrackColor = Color(0xFFD1D1D6)
-                )
-        )
     }
 }
 
 @Composable
-fun OriginalPreviewCard(bitmap: Bitmap?) {
+fun OriginalPreviewCard(bitmap: Bitmap?, backdrop: GlassBackdrop? = null) {
     if (bitmap == null) return
     GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
+        cornerRadius = 16.dp,
+        backdrop = backdrop
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -475,10 +590,11 @@ fun OriginalPreviewCard(bitmap: Bitmap?) {
 }
 
 @Composable
-fun ResultPreviewCard(bitmap: Bitmap?, isProcessing: Boolean) {
+fun ResultPreviewCard(bitmap: Bitmap?, isProcessing: Boolean, backdrop: GlassBackdrop? = null) {
     GlassSurface(
         modifier = Modifier.fillMaxWidth(),
-        cornerRadius = 16.dp
+        cornerRadius = 16.dp,
+        backdrop = backdrop
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
@@ -518,39 +634,48 @@ fun ResultPreviewCard(bitmap: Bitmap?, isProcessing: Boolean) {
 }
 
 @Composable
-fun ActionButtons(canSave: Boolean, onPickImage: () -> Unit, onSave: () -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        androidx.compose.material3.Button(
-            onClick = onPickImage,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(14.dp)
+fun ActionButtons(canSave: Boolean, onPickImage: () -> Unit, onSave: () -> Unit, backdrop: GlassBackdrop? = null) {
+    GlassSurface(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = 16.dp,
+        backdrop = backdrop
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.PhotoLibrary,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("重新选择图片", fontSize = 16.sp)
-        }
+            androidx.compose.material3.Button(
+                onClick = onPickImage,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PhotoLibrary,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("重新选择图片", fontSize = 16.sp)
+            }
 
-        androidx.compose.material3.Button(
-            onClick = onSave,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            shape = RoundedCornerShape(14.dp),
-            enabled = canSave
-        ) {
-            Icon(
-                imageVector = Icons.Default.Save,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("保存到相册", fontSize = 16.sp)
+            androidx.compose.material3.Button(
+                onClick = onSave,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                enabled = canSave
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Save,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("保存到相册", fontSize = 16.sp)
+            }
         }
     }
 }
@@ -921,4 +1046,128 @@ class WallpaperViewModel : androidx.lifecycle.ViewModel() {
             try { recycle() } catch (_: Exception) {}
         }
     }
+
+@Composable
+fun DesktopPreviewGrid(
+    modifier: Modifier = Modifier,
+    cellSize: androidx.compose.ui.unit.Dp = 10.dp,
+    lineColor: Color = Color(0xFF8E8E93),
+    alpha: Float = 0.5f
+) {
+    Box(modifier = modifier) {
+        androidx.compose.foundation.Canvas(modifier = Modifier.fillMaxSize()) {
+            val step = cellSize.toPx()
+            if (step > 0f) {
+                var x = 0f
+                while (x <= size.width) {
+                    drawLine(
+                        color = lineColor.copy(alpha = alpha),
+                        start = Offset(x, 0f),
+                        end = Offset(x, size.height),
+                        strokeWidth = 1.dp.toPx()
+                    )
+                    x += step
+                }
+                var y = 0f
+                while (y <= size.height) {
+                    drawLine(
+                        color = lineColor.copy(alpha = alpha),
+                        start = Offset(0f, y),
+                        end = Offset(size.width, y),
+                        strokeWidth = 1.dp.toPx()
+                    )
+                    y += step
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeTopDock(
+    backdrop: GlassBackdrop,
+    onNavigateToAbout: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val density = LocalDensity.current
+    val cornerPx = with(density) { 22.dp.toPx() }
+    val shape = RoundedCornerShape(22.dp)
+    Box(
+        modifier = modifier
+            .height(56.dp)
+            .fillMaxWidth()
+            .graphicsLayer {
+                clip = false
+                this.shape = shape
+                compositingStrategy = CompositingStrategy.Offscreen
+            }
+            .drawGlassBackdrop(
+                state = backdrop,
+                shape = shape,
+                cornerRadiusPx = cornerPx,
+                blurPx = 24f,
+                refractionHeightPx = 26f,
+                refractionAmountPx = 30f,
+                depthEffect = 0.5f
+            ) {
+                drawRect(color = Color(0xFFFFFFFF).copy(alpha = 0.34f))
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.White.copy(alpha = 0.6f),
+                            Color.Transparent
+                        ),
+                        startY = 0f,
+                        endY = size.height * 0.5f
+                    )
+                )
+            }
+            .border(1.dp, Color.White.copy(alpha = 0.5f), shape)
+            .clip(shape),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "壁纸延展",
+                style = MaterialTheme.typography.titleMedium,
+                color = Color(0xFF1C1C1E),
+                fontWeight = FontWeight.SemiBold
+            )
+            Box(
+                modifier = Modifier
+                    .size(30.dp)
+                    .clip(RoundedCornerShape(9.dp))
+                    .background(Color.White.copy(alpha = 0.35f))
+            ) {
+                DesktopPreviewGrid(
+                    modifier = Modifier.fillMaxSize(),
+                    cellSize = 6.dp,
+                    alpha = 0.55f
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            IconButton(
+                onClick = onNavigateToAbout,
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.4f))
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = "关于",
+                    tint = Color(0xFF1C1C1E),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
 }
