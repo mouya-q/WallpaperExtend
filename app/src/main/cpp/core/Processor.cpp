@@ -1,4 +1,5 @@
 #include "Processor.h"
+#include "VulkanBlur.h"
 #include <algorithm>
 #include <cstring>
 
@@ -136,6 +137,11 @@ void Processor::applyFeather(Image& output, int extendH) {
 
 void Processor::applyBlur(Image& image, int radius) {
     if (radius <= 0) return;
+    if (vulkanBlur.isAvailable()) {
+        if (vulkanBlur.blur(image.pixels(), image.width(), image.height(), radius)) {
+            return;
+        }
+    }
     stackBlurH(image.pixels(), image.width(), image.height(), radius);
     stackBlurV(image.pixels(), image.width(), image.height(), radius);
 }
