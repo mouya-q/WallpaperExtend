@@ -214,7 +214,7 @@ fun GlassSurface(
                 drawRect(color = GlassFill.copy(alpha = 0.82f))
             } else {
                 drawRect(
-                    color = GlassFill.copy(alpha = 0.46f),
+                    color = GlassFill.copy(alpha = 0.3f),
                     blendMode = BlendMode.SrcOver
                 )
                 drawRect(
