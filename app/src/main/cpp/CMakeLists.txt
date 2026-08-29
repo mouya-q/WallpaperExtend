@@ -9,6 +9,7 @@ set(CORE_SOURCES
     core/Image.cpp
     core/Processor.cpp
     core/Pipeline.cpp
+    core/VulkanBlur.cpp
 )
 
 # JNI bridge
