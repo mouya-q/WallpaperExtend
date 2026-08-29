@@ -42,7 +42,14 @@ import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.OnGloballyPositionedModifier
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.node.requireGraphicsContext
+import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
@@ -79,7 +86,7 @@ float2 gradSdRoundedRect(float2 p, float2 half, float rad) {
     }
 }"""
 
-private val RefractionShader = """
+internal val RefractionShader = """
 uniform shader content;
 uniform float2 size;
 uniform float2 offset;
@@ -125,7 +132,7 @@ half4 main(float2 coord) {
     return color * intensity;
 }"""
 
-private fun cornerRadiiOf(radiusPx: Float, width: Float, height: Float): FloatArray {
+internal fun cornerRadiiOf(radiusPx: Float, width: Float, height: Float): FloatArray {
     val maxRadius = minOf(width, height) / 2f
     val r = radiusPx.coerceAtMost(maxRadius)
     return floatArrayOf(r, r, r, r)
@@ -136,6 +143,7 @@ fun GlassSurface(
     modifier: Modifier = Modifier,
     cornerRadius: androidx.compose.ui.unit.Dp = 16.dp,
     blurRadiusDp: androidx.compose.ui.unit.Dp = 22.dp,
+    backdrop: GlassBackdrop? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
     val density = LocalDensity.current
@@ -198,9 +206,62 @@ fun GlassSurface(
             pressAmount * blurPx * 0.5f
         val dynamicHeight = blurPx * 0.85f + 6f + pressAmount * blurPx * 0.4f
 
-        Box(
-            modifier = Modifier
-                .matchParentSize()
+        val materialLayer = @ComposableContentDrawScope {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+                drawRect(color = GlassFill.copy(alpha = 0.82f))
+            } else {
+                drawRect(
+                    color = GlassFill.copy(alpha = 0.46f),
+                    blendMode = BlendMode.SrcOver
+                )
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            GlassReflect.copy(alpha = 0.72f),
+                            Color.Transparent
+                        ),
+                        startY = 0f,
+                        endY = size.height * 0.45f
+                    ),
+                    blendMode = BlendMode.SrcOver
+                )
+                drawRect(
+                    brush = Brush.radialGradient(
+                        center = Offset(size.width * 0.5f, size.height * 1.15f),
+                        radius = size.height * 1.1f,
+                        colors = listOf(
+                            Color.Transparent,
+                            GlassReflect.copy(alpha = 0.16f)
+                        )
+                    ),
+                    blendMode = BlendMode.SrcOver
+                )
+                drawRect(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            GlassShade.copy(alpha = 0.08f)
+                        ),
+                        startY = size.height * 0.6f,
+                        endY = size.height
+                    ),
+                    blendMode = BlendMode.SrcOver
+                )
+            }
+        }
+
+        val innerModifier = if (backdrop != null) {
+            Modifier.drawGlassBackdrop(
+                state = backdrop,
+                shape = shape,
+                cornerRadiusPx = radiusPx,
+                blurPx = blurPx,
+                refractionHeightPx = dynamicHeight,
+                refractionAmountPx = dynamicRefraction,
+                depthEffect = 0.4f
+            ) { materialLayer() }
+        } else {
+            Modifier
                 .graphicsLayer {
                     clip = false
                     this.shape = shape
@@ -233,49 +294,11 @@ fun GlassSurface(
                         }
                     }
                 }
-                .drawWithContent {
-                    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-                        drawRect(color = GlassFill.copy(alpha = 0.82f))
-                    } else {
-                        drawRect(
-                            color = GlassFill.copy(alpha = 0.46f),
-                            blendMode = BlendMode.SrcOver
-                        )
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    GlassReflect.copy(alpha = 0.72f),
-                                    Color.Transparent
-                                ),
-                                startY = 0f,
-                                endY = size.height * 0.45f
-                            ),
-                            blendMode = BlendMode.SrcOver
-                        )
-                        drawRect(
-                            brush = Brush.radialGradient(
-                                center = Offset(size.width * 0.5f, size.height * 1.15f),
-                                radius = size.height * 1.1f,
-                                colors = listOf(
-                                    Color.Transparent,
-                                    GlassReflect.copy(alpha = 0.16f)
-                                )
-                            ),
-                            blendMode = BlendMode.SrcOver
-                        )
-                        drawRect(
-                            brush = Brush.verticalGradient(
-                                colors = listOf(
-                                    Color.Transparent,
-                                    GlassShade.copy(alpha = 0.08f)
-                                ),
-                                startY = size.height * 0.6f,
-                                endY = size.height
-                            ),
-                            blendMode = BlendMode.SrcOver
-                        )
-                    }
-                }
+                .drawWithContent { materialLayer() }
+        }
+
+        Box(
+            modifier = Modifier.matchParentSize().then(innerModifier)
         ) {}
 
         if (supportsRuntime) {
@@ -360,4 +383,110 @@ fun GlassSurface(
             content = content
         )
     }
+}
+
+class GlassBackdrop {
+    internal var graphicsLayer: GraphicsLayer? = null
+    internal var coordinates: LayoutCoordinates? = null
+}
+
+@Composable
+fun rememberGlassBackdrop(): GlassBackdrop {
+    val layer = rememberGraphicsLayer()
+    return remember(layer) { GlassBackdrop().apply { graphicsLayer = layer } }
+}
+
+private class BackdropLayerNode(
+    val state: GlassBackdrop
+) : Modifier.Node(), OnGloballyPositionedModifier {
+    override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
+        if (coordinates.isAttached) {
+            state.coordinates = coordinates
+        }
+    }
+
+    override fun onAttach() {
+        if (state.graphicsLayer == null) {
+            state.graphicsLayer = requireGraphicsContext().createGraphicsLayer()
+        }
+    }
+
+    override fun onDetach() {
+        state.graphicsLayer?.let { requireGraphicsContext().releaseGraphicsLayer(it) }
+        state.graphicsLayer = null
+        state.coordinates = null
+    }
+}
+
+private class BackdropLayerElement(
+    val state: GlassBackdrop
+) : ModifierNodeElement<BackdropLayerNode>() {
+    override fun create() = BackdropLayerNode(state)
+    override fun update(node: BackdropLayerNode) {}
+    override fun InspectorInfo.inspectableProperties() {
+        name = "backdropLayer"
+    }
+
+    override fun equals(other: Any?) = other is BackdropLayerElement && other.state === state
+    override fun hashCode() = state.hashCode()
+}
+
+fun Modifier.backdropLayer(state: GlassBackdrop): Modifier =
+    this then BackdropLayerElement(state)
+
+fun Modifier.drawGlassBackdrop(
+    state: GlassBackdrop,
+    shape: Shape,
+    cornerRadiusPx: Float = 0f,
+    blurPx: Float = 22f,
+    refractionHeightPx: Float = 18f,
+    refractionAmountPx: Float = 22f,
+    depthEffect: Float = 0.4f,
+    content: ContentDrawScope.() -> Unit
+): Modifier {
+    val supportsRuntime = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+    return this
+        .graphicsLayer {
+            clip = false
+            this.shape = shape
+            compositingStrategy = CompositingStrategy.Offscreen
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                val blur = android.graphics.RenderEffect
+                    .createBlurEffect(blurPx, blurPx, android.graphics.Shader.TileMode.CLAMP)
+                if (supportsRuntime) {
+                    val shader = RuntimeShader(RefractionShader)
+                    shader.setFloatUniform("size", size.width, size.height)
+                    shader.setFloatUniform("offset", 0f, 0f)
+                    shader.setFloatUniform(
+                        "cornerRadii",
+                        cornerRadiiOf(cornerRadiusPx, size.width, size.height)
+                    )
+                    shader.setFloatUniform("refractionHeight", refractionHeightPx)
+                    shader.setFloatUniform("refractionAmount", -refractionAmountPx)
+                    shader.setFloatUniform("depthEffect", depthEffect)
+                    val refr = android.graphics.RenderEffect
+                        .createRuntimeShaderEffect(shader, "content")
+                    renderEffect = android.graphics.RenderEffect
+                        .createChainEffect(refr, blur)
+                        .asComposeRenderEffect()
+                } else {
+                    renderEffect = blur.asComposeRenderEffect()
+                }
+            }
+        }
+        .drawWithContent {
+            val layer = state.graphicsLayer
+            val coords = state.coordinates
+            if (layer != null && coords != null && coords.isAttached) {
+                val offset = coords.positionInWindow() - positionInWindow()
+                layer.record(
+                    IntSize(size.width.toInt() + 4, size.height.toInt() + 4)
+                ) {
+                    translate(-offset.x, -offset.y) {
+                        drawLayer(layer)
+                    }
+                }
+            }
+            content()
+        }
 }
