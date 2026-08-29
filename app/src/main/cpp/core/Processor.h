@@ -32,6 +32,8 @@ private:
     ProcessorConfig config;
     ProgressCallback progressCb = nullptr;
 
+    VulkanBlur vulkanBlur;
+
     void extendTop(Image& output, const Image& input, int extendH);
     void applyFeather(Image& output, int extendH);
     void applyBlur(Image& image, int radius);
