@@ -477,9 +477,9 @@ fun Modifier.drawGlassBackdrop(
         .drawWithContent {
             val layer = state.graphicsLayer
             val coords = state.coordinates
-            val self = layoutCoordinates
-            if (layer != null && coords != null && coords.isAttached && self.isAttached) {
-                val offset = coords.positionInWindow() - self.positionInWindow()
+            val selfCoords = drawContext.layoutCoordinates
+            if (layer != null && coords != null && coords.isAttached && selfCoords != null && selfCoords.isAttached) {
+                val offset = coords.positionInWindow() - selfCoords.positionInWindow()
                 layer.record(
                     IntSize(size.width.toInt() + 4, size.height.toInt() + 4)
                 ) {
