@@ -16,6 +16,27 @@ import kotlin.math.roundToInt
 
 object WallpaperProcessor {
 
+    private var nativeReady = false
+
+    init {
+        try {
+            System.loadLibrary("wallpaperextend")
+            nativeReady = true
+        } catch (t: Throwable) {
+            nativeReady = false
+        }
+    }
+
+    private external fun nativeInit(): Long
+    private external fun nativeProcess(
+        srcBitmap: Bitmap,
+        targetW: Int,
+        targetH: Int,
+        blurRadius: Int,
+        extendRatio: Float,
+        featherWidth: Int
+    ): Bitmap?
+    private external fun nativeRelease(handle: Long)
 
     data class Config(
         val blurRadius: Int = 30,
@@ -25,7 +46,6 @@ object WallpaperProcessor {
     )
 
     data class Result(val bitmap: Bitmap, val width: Int, val height: Int)
-
 
     suspend fun processAsync(
         src: Bitmap,
@@ -37,11 +57,38 @@ object WallpaperProcessor {
         onProgress?.invoke(0.1f)
         val safe = ensureOpaque(src)
         onProgress?.invoke(0.2f)
-
         val scaled = scaleToWidth(safe, targetW)
+        onProgress?.invoke(0.3f)
+
+        if (nativeReady) {
+            try {
+                val handle = nativeInit()
+                val out = nativeProcess(
+                    scaled, targetW, targetH,
+                    config.blurRadius, config.extendRatio, config.featherWidth
+                )
+                nativeRelease(handle)
+                if (out != null) {
+                    onProgress?.invoke(1.0f)
+                    return@withContext Result(out, out.width, out.height)
+                }
+            } catch (t: Throwable) {
+                t.printStackTrace()
+            }
+        }
+
+        processKotlin(scaled, targetW, targetH, config, onProgress)
+    }
+
+    private suspend fun processKotlin(
+        scaled: Bitmap,
+        targetW: Int,
+        targetH: Int,
+        config: Config,
+        onProgress: ((Float) -> Unit)?
+    ): Result = withContext(Dispatchers.Default) {
         val srcW = scaled.width
         val srcH = scaled.height
-        onProgress?.invoke(0.3f)
 
         val extendH = if (config.topOnly) {
             (targetH * config.extendRatio.coerceIn(0f, 0.6f)).roundToInt().coerceAtLeast(0)
@@ -125,7 +172,7 @@ object WallpaperProcessor {
     }
 
     private fun ensureOpaque(src: Bitmap): Bitmap {
-        if (!src.hasAlpha()) return src
+        if (!src.hasAlpha() && src.config == Bitmap.Config.ARGB_8888) return src
         val b = Bitmap.createBitmap(src.width, src.height, Bitmap.Config.ARGB_8888)
         Canvas(b).apply {
             drawColor(Color.WHITE)

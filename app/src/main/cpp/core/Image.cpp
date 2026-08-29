@@ -37,14 +37,14 @@ jobject Image::createBitmap(JNIEnv* env) const {
     jclass bitmapClass = env->FindClass("android/graphics/Bitmap");
     if (bitmapClass == nullptr) return nullptr;
     jmethodID createMethod = env->GetStaticMethodID(bitmapClass, "createBitmap",
-            "(IILandroid/graphics/Bitmap\$Config;)Landroid/graphics/Bitmap;");
+            "(IILandroid/graphics/Bitmap$Config;)Landroid/graphics/Bitmap;");
     if (createMethod == nullptr) {
         env->DeleteLocalRef(bitmapClass);
         return nullptr;
     }
-    jclass configClass = env->FindClass("android/graphics/Bitmap\$Config");
+    jclass configClass = env->FindClass("android/graphics/Bitmap$Config");
     jfieldID argb8888Field = env->GetStaticFieldID(configClass, "ARGB8888",
-            "Landroid/graphics/Bitmap\$Config;");
+            "Landroid/graphics/Bitmap$Config;");
     if (argb8888Field == nullptr) {
         env->DeleteLocalRef(bitmapClass);
         env->DeleteLocalRef(configClass);

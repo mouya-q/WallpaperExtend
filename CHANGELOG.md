@@ -52,6 +52,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Startup crash caused by `LazyColumn` nested with infinite height scroll constraint (IllegalStateException)
 - Restored `lifecycle-viewmodel-compose` dependency for Compose ViewModel
+- Cloud build: rewrite Gradle files as valid Groovy DSL (`abiFilters`, `minifyEnabled`, `buildFeatures`, `packaging`); drop conflicting `.kts` files
+- Cloud build: fix GLSL shader `float4` -> `vec4` in `gaussian_blur.comp`
+- Cloud build: fix C++ `NativeProcessor` singleton access (avoid `new`/`delete` on private ctor)
+- Cloud build: fix `ProgressCallback` as `std::function` and a brace error in `stackBlurV`
+- Cloud build: link `jnigraphics` for `AndroidBitmap_*` symbols
+
+## [2.2.0] - 2025-01-20
+
+### Added
+
+- Phase 1 C++ pipeline integration: `WallpaperProcessor` now loads `libwallpaperextend` via JNI and routes processing through the native `Pipeline` (`core/Image` -> `core/Processor` -> `core/Pipeline`) with `nativeInit` / `nativeProcess` / `nativeRelease`
+- Kotlin processing path retained as automatic fallback when the native library fails to load, preserving incremental Kotlin -> C++ migration
+- Removed conflicting `app/build.gradle.kts`; single Groovy `build.gradle` is the source of truth
+
+### Changed
+
+- `WallpaperProcessor.processAsync` tries native engine first, falls back to Kotlin `processKotlin` on any failure (no behavior regression)
+- Native pipeline performs Stack Blur extension on CPU with tiled downscale (`maxDimension = 1024`) matching the original Kotlin visual output
+
+### Notes
+
+- Phase 2 (OpenCV + Vulkan) and Phase 3 (TFLite AI segmentation) directories are scaffolded but empty; target device Snapdragon 865 / Adreno 650
 
 ## [2.0.0] - 2025-01-01
 
