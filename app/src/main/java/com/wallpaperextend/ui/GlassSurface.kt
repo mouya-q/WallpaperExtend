@@ -46,12 +46,14 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.OnGloballyPositionedModifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.requireGraphicsContext
 import androidx.compose.ui.platform.InspectorInfo
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.toIntSize
 import androidx.compose.ui.unit.dp
 import kotlin.math.PI
 import kotlin.math.ceil
@@ -400,7 +402,17 @@ fun rememberGlassBackdrop(): GlassBackdrop {
 
 private class BackdropLayerNode(
     val state: GlassBackdrop
-) : Modifier.Node(), OnGloballyPositionedModifier {
+) : Modifier.Node(), DrawModifierNode, OnGloballyPositionedModifier {
+    override fun ContentDrawScope.draw() {
+        drawContent()
+        val layer = state.graphicsLayer
+        if (layer != null && isAttached) {
+            layer.record(size.toIntSize()) {
+                drawContent()
+            }
+        }
+    }
+
     override fun onGloballyPositioned(coordinates: LayoutCoordinates) {
         if (coordinates.isAttached) {
             state.coordinates = coordinates
@@ -483,12 +495,8 @@ fun Modifier.drawGlassBackdrop(
             val selfCoords = state.selfCoordinates
             if (layer != null && coords != null && coords.isAttached && selfCoords != null && selfCoords.isAttached) {
                 val offset = coords.positionInWindow() - selfCoords.positionInWindow()
-                layer.record(
-                    IntSize(size.width.toInt() + 4, size.height.toInt() + 4)
-                ) {
-                    translate(-offset.x, -offset.y) {
-                        drawLayer(layer)
-                    }
+                translate(-offset.x, -offset.y) {
+                    drawLayer(layer)
                 }
             }
             content()
