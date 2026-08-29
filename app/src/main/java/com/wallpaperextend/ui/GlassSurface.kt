@@ -407,8 +407,9 @@ private class BackdropLayerNode(
         drawContent()
         val layer = state.graphicsLayer
         if (layer != null && isAttached) {
+            val self = this
             layer.record(size.toIntSize()) {
-                drawContent()
+                self.drawContent()
             }
         }
     }
