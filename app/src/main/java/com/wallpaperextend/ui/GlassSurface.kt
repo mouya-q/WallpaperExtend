@@ -206,7 +206,7 @@ fun GlassSurface(
             pressAmount * blurPx * 0.5f
         val dynamicHeight = blurPx * 0.85f + 6f + pressAmount * blurPx * 0.4f
 
-        val materialLayer = @ComposableContentDrawScope {
+        val materialLayer = @ContentDrawScope {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                 drawRect(color = GlassFill.copy(alpha = 0.82f))
             } else {
