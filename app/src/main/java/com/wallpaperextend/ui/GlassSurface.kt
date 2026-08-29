@@ -206,7 +206,7 @@ fun GlassSurface(
             pressAmount * blurPx * 0.5f
         val dynamicHeight = blurPx * 0.85f + 6f + pressAmount * blurPx * 0.4f
 
-        val materialLayer = @ContentDrawScope {
+        val materialLayer: ContentDrawScope.() -> Unit = {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
                 drawRect(color = GlassFill.copy(alpha = 0.82f))
             } else {
@@ -477,8 +477,9 @@ fun Modifier.drawGlassBackdrop(
         .drawWithContent {
             val layer = state.graphicsLayer
             val coords = state.coordinates
-            if (layer != null && coords != null && coords.isAttached) {
-                val offset = coords.positionInWindow() - positionInWindow()
+            val self = layoutCoordinates
+            if (layer != null && coords != null && coords.isAttached && self.isAttached) {
+                val offset = coords.positionInWindow() - self.positionInWindow()
                 layer.record(
                     IntSize(size.width.toInt() + 4, size.height.toInt() + 4)
                 ) {
