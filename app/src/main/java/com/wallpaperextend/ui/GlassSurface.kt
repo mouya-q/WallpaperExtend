@@ -31,7 +31,9 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.PaintingStyle
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asComposeRenderEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.translate
@@ -320,12 +322,7 @@ fun GlassSurface(
                         }
                         highlightLayer.record(safeSize) {
                             translate(1f, 1f) {
-                                with(drawContext.canvas) {
-                                    save()
-                                    clipOutline(outline, null)
-                                    drawOutline(outline, paint.asFrameworkPaint())
-                                    restore()
-                                }
+                                drawContext.canvas.drawOutline(outline, paint)
                             }
                         }
                         translate(-1f, -1f) {
@@ -348,12 +345,12 @@ fun GlassSurface(
                             layoutDirection,
                             this@drawWithContent
                         )
-                        val paint = Paint().apply {
-                            style = PaintingStyle.Stroke
-                            strokeWidth = 1.4f
+                        drawOutline(
+                            outline,
+                            brush = SolidColor(GlassReflect),
+                            style = Stroke(width = 1.4f),
                             blendMode = BlendMode.Plus
-                        }
-                        drawOutline(outline, paint)
+                        )
                     }
             ) {}
         }
