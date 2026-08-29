@@ -44,6 +44,7 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.OnGloballyPositionedModifier
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.requireGraphicsContext
@@ -388,6 +389,7 @@ fun GlassSurface(
 class GlassBackdrop {
     internal var graphicsLayer: GraphicsLayer? = null
     internal var coordinates: LayoutCoordinates? = null
+    internal var selfCoordinates: LayoutCoordinates? = null
 }
 
 @Composable
@@ -446,6 +448,7 @@ fun Modifier.drawGlassBackdrop(
 ): Modifier {
     val supportsRuntime = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
     return this
+        .onGloballyPositioned { state.selfCoordinates = it }
         .graphicsLayer {
             clip = false
             this.shape = shape
@@ -477,7 +480,7 @@ fun Modifier.drawGlassBackdrop(
         .drawWithContent {
             val layer = state.graphicsLayer
             val coords = state.coordinates
-            val selfCoords = drawContext.layoutCoordinates
+            val selfCoords = state.selfCoordinates
             if (layer != null && coords != null && coords.isAttached && selfCoords != null && selfCoords.isAttached) {
                 val offset = coords.positionInWindow() - selfCoords.positionInWindow()
                 layer.record(
